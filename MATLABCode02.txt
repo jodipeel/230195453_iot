@@ -1,0 +1,43 @@
+% Read the volume channel data and get the motion detection data for the past hour.
+% Send an email and tell the user to consider turning off the music
+% if mean motion detected value is 0.
+
+% Store the channel ID for the channel.
+channelID = 276330;
+
+% Provide the ThingSpeak alerts API key.  All alerts API keys start with TAK.
+alertApiKey = 'TAKzawrti8JVW0G8umf';
+
+% Set the address for the HTTTP call
+alertUrl="https://api.thingspeak.com/alerts/send";
+
+% webwrite uses weboptions to add required headers.  Alerts needs a ThingSpeak-Alerts-API-Key header.
+options = weboptions("HeaderFields", ["ThingSpeak-Alerts-API-Key", alertApiKey ]);
+
+% Set the email subject.
+alertSubject = sprintf("Room occupancy alert");
+
+% Read the recent data.
+occupancyData = thingSpeakRead(channelID,'NumMinutes',60,'Fields',2);
+
+% Check to make sure the data was read correctly from the channel.
+if isempty(occupancyData)
+    alertBody = ' No data read from room. ';      
+else
+    % Calculate a modal value based on recent data.
+    calculatedMode = mode(occupancyData); 
+
+    % Set the outgoing message
+    if (calculatedMode == 1)
+        alertBody = ' No action needed! ';
+    elseif (calculatedMode == 0)
+        alertBody = ' No recent movement, consider turning off music. ';
+    end
+end
+ 
+ % Catch errors so the MATLAB code does not disable a TimeControl if it fails
+try
+    webwrite(alertUrl , "body", alertBody, "subject", alertSubject, options);
+catch someException
+    fprintf("Failed to send alert: %s\n", someException.message);
+end

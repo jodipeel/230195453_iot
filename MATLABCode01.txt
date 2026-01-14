@@ -1,0 +1,47 @@
+% Read the room volume channel data.
+% Send an email and tell the user to adjust volume if the value
+% is in the highest 40 %.
+
+% Store the channel ID for the moisture sensor channel.
+channelID = 3223095;
+
+% Provide the ThingSpeak alerts API key.  All alerts API keys start with TAK.
+alertApiKey = 'TAKzawrti8JVW0G8umf';
+
+% Set the address for the HTTTP call
+alertUrl="https://api.thingspeak.com/alerts/send";
+
+% webwrite uses weboptions to add required headers.  Alerts needs a ThingSpeak-Alerts-API-Key header.
+options = weboptions("HeaderFields", ["ThingSpeak-Alerts-API-Key", alertApiKey ]);
+
+% Set the email subject.
+alertSubject = sprintf("Room Volume Notice");
+
+% Read the recent data.
+volData = thingSpeakRead(channelID,'NumDays',4,'Fields',1);
+
+% Check to make sure the data was read correctly from the channel.
+if isempty(volData)
+    alertBody = ' No data read from room. ';      
+else
+    % Calculate a 40% threshold value based on recent data.
+    span = max(volData) - min(volData);
+    tooLoudValue = 0.4 * span + min(volData);
+
+    % Get the most recent point in the array of volume data.
+    lastValue = volData(end); 
+
+    % Set the outgoing message
+    if (lastValue<=tooLoudValue)
+        alertBody = ' No action needed! ';
+    elseif (lastValue>dryValue)
+        alertBody = ' Consider turning the music up! ';
+    end
+end
+ 
+ % Catch errors so the MATLAB code does not disable a TimeControl if it fails
+try
+    webwrite(alertUrl , "body", alertBody, "subject", alertSubject, options);
+catch someException
+    fprintf("Failed to send alert: %s\n", someException.message);
+end
