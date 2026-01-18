@@ -34,7 +34,7 @@ else
     % Set the outgoing message
     if (lastValue<=tooLoudValue)
         alertBody = ' No action needed! ';
-    elseif (lastValue>dryValue)
+    elseif (lastValue>tooLoudValue)
         alertBody = ' Consider turning the music up! ';
     end
 end
@@ -44,4 +44,5 @@ try
     webwrite(alertUrl , "body", alertBody, "subject", alertSubject, options);
 catch someException
     fprintf("Failed to send alert: %s\n", someException.message);
+
 end
